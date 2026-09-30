@@ -1,0 +1,20 @@
+[Unit]
+Description=Decisionerr shared LLM decision service
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/decisionerr
+Environment=PATH=%h/.local/bin:%h/.local/opt/node/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOME=%h
+Environment=DECISIONERR_PORT=8790
+Environment=DECISIONERR_HOST=127.0.0.1
+Environment=CLAUDE_DAILY_CAP=100
+Environment=AGY_DAILY_CAP=50
+Environment=NODE_NO_WARNINGS=1
+ExecStart=%h/.local/opt/node/bin/node %h/decisionerr/src/server.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

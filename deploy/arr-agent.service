@@ -1,0 +1,11 @@
+[Unit]
+Description=arr-agent: Decisionerr fallback picker for Sonarr/Radarr
+After=decisionerr.service
+Wants=decisionerr.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/decisionerr
+Environment=HOME=%h
+EnvironmentFile=%h/decisionerr/arr-agent.env
+ExecStart=%h/.local/opt/node/bin/node %h/decisionerr/arr-agent/src/main.mjs

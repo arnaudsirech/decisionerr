@@ -1,0 +1,3 @@
+{
+  "arr-agent": { "token": "<64 hex chars: openssl rand -hex 32>", "dailyCap": 200 }
+}
