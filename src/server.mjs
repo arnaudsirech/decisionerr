@@ -9,7 +9,7 @@ import { claudeProvider } from "./providers/claude.mjs";
 
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 const MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-const TIERS = new Set(["fast", "thorough"]);
+const TIERS = new Set(["fast", "thorough", "best"]);
 
 function send(response, status, body) {
   response.writeHead(status, { "Content-Type": "application/json" });
@@ -54,7 +54,7 @@ export function parseRequest(body) {
   if (input === undefined) return "input is required";
   if (JSON.stringify(input).length > 200_000) return "input: up to 200000 chars once serialised";
   if (!schema || typeof schema !== "object" || Array.isArray(schema)) return "schema must be a JSON Schema object";
-  if (!TIERS.has(tier)) return "tier: fast | thorough";
+  if (!TIERS.has(tier)) return "tier: fast | thorough | best";
   if (!Number.isInteger(cache_ttl_s) || cache_ttl_s < 0 || cache_ttl_s > 7 * 86_400) return "cache_ttl_s: integer 0-604800";
   if (!Array.isArray(images) || images.length > 4) return "images: array of up to 4";
   for (const image of images) {

@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { findEvent, runProcess } from "../proc.mjs";
 
+const TIMEOUT_MS = { fast: 120_000, thorough: 600_000, best: 900_000 };
+
 /**
  * Antigravity headless (`agy`). Headless mode auto-denies every tool that
  * needs a permission (commands, reads and writes outside the workspace), but
@@ -10,13 +12,14 @@ import { findEvent, runProcess } from "../proc.mjs";
  * directory that is deleted afterwards. The prompt goes over stdin because a
  * single argument is capped at 128 KiB.
  */
-export function agyProvider({ bin = "agy", timeoutMs = 120_000, model = null } = {}) {
+export function agyProvider({ bin = "agy", model = null } = {}) {
   return {
     name: "agy",
     supportsImages: false,
     modelFor: () => model ?? "agy-default",
 
-    async run({ system, prompt, schema }) {
+    async run({ system, prompt, schema, tier }) {
+      const timeoutMs = TIMEOUT_MS[tier] ?? TIMEOUT_MS.fast;
       const dir = mkdtempSync(join(tmpdir(), "decisionerr-agy-"));
       try {
         const schemaFile = join(dir, "schema.json");

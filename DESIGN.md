@@ -51,7 +51,7 @@ See [README.md](README.md). Two conventions:
 ## Providers
 
 1. **Claude:** `claude -p --input-format stream-json --output-format stream-json
-   --model <haiku|sonnet> --tools "" --strict-mcp-config --setting-sources ""
+   --model <haiku|sonnet|opus> --tools "" --strict-mcp-config --setting-sources ""
    --no-session-persistence --system-prompt … --json-schema …`. With no tools and no
    settings, text inside an input can only shape the JSON that comes back.
 2. **Antigravity:** `agy -p= --input-format stream-json --output-format stream-json

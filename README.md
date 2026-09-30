@@ -15,7 +15,7 @@ See [DESIGN.md](DESIGN.md) for the design.
 ```
 POST /v1/decide          Authorization: Bearer <app token>
 { "task": "pick_release", "system": "...", "input": {...} | "text",
-  "schema": {...}, "tier": "fast" | "thorough", "images": [], "cache_ttl_s": 0 }
+  "schema": {...}, "tier": "fast" | "thorough" | "best", "images": [], "cache_ttl_s": 0 }
 
 200 { id, decision, reason, confidence, provider, model, cached, latency_ms }
 400 bad request / bad schema    422 no provider gave schema-valid output

@@ -5,14 +5,17 @@ import { findEvent, runProcess } from "../proc.mjs";
 const MODELS = {
   fast: "claude-haiku-4-5-20251001",
   thorough: "claude-sonnet-5-5",
+  best: "claude-opus-5-5",
 };
+
+const TIMEOUT_MS = { fast: 90_000, thorough: 300_000, best: 600_000 };
 
 /**
  * Claude through the subscription (`claude -p`), never the metered API.
  * Locked down: no tools, no MCP, no settings, no session,
  * so text inside an input can only shape the JSON that comes back.
  */
-export function claudeProvider({ bin = "claude", timeoutMs = 90_000, workdir } = {}) {
+export function claudeProvider({ bin = "claude", workdir } = {}) {
   const cwd = workdir ?? join(process.env.HOME ?? "/tmp", ".cache", "decisionerr", "claude");
   mkdirSync(cwd, { recursive: true });
 
@@ -47,7 +50,7 @@ export function claudeProvider({ bin = "claude", timeoutMs = 90_000, workdir } =
         ],
         {
           cwd,
-          timeoutMs,
+          timeoutMs: TIMEOUT_MS[tier] ?? TIMEOUT_MS.fast,
           stdin: `${JSON.stringify({ type: "user", message: { role: "user", content } })}\n`,
         },
       );
