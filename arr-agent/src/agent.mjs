@@ -1,5 +1,5 @@
 import { compactReleases, PICK_SCHEMA, resolvePick } from "./candidates.mjs";
-import { dueTargets, radarrTargets, searchPath, sonarrTargets } from "./targets.mjs";
+import { dueTargets, later, radarrTargets, searchPath, sonarrTargets } from "./targets.mjs";
 
 /** Minimal *arr client. `fetchImpl` is injectable for tests. */
 export function arrClient({ url, apiKey, fetchImpl = fetch, timeoutMs = 180_000 }) {
@@ -53,9 +53,7 @@ export async function runPicker({ sonarr, radarr, decide, state, system, config,
     blocklists.radarr = (await radarr.get("/api/v3/blocklist?pageSize=500")).records;
   }
 
-  const due = dueTargets(targets, state.asked, {
-    now, cooldownHours: config.cooldownHours, limit: config.maxTargets,
-  });
+  const due = dueTargets(targets, state.nextAt, { now, limit: config.maxTargets });
   log({ event: "run", targets: targets.length, due: due.length, dryRun: config.dryRun });
 
   let grabs = 0;
@@ -70,11 +68,12 @@ export async function runPicker({ sonarr, radarr, decide, state, system, config,
       log({ event: "error", target: label, why: `search failed: ${error.message}` });
       continue;
     }
-    state.asked[target.key] = now.toISOString();
     if (candidates.length === 0) {
-      log({ event: "skip", target: label, why: "no usable releases" });
+      state.nextAt[target.key] = later(now, config.emptyRetryHours);
+      log({ event: "skip", target: label, why: "no usable releases", retry_at: state.nextAt[target.key] });
       continue;
     }
+    state.nextAt[target.key] = later(now, config.cooldownHours);
 
     const { key, app, ...context } = target;
     const res = await decide({
@@ -89,7 +88,7 @@ export async function runPicker({ sonarr, radarr, decide, state, system, config,
     });
 
     if (res.status === 429 || res.status === 503) {
-      delete state.asked[target.key];
+      delete state.nextAt[target.key];
       log({ event: "stop", target: label, why: `decisionerr ${res.status} ${res.body.error}`, retry_after: res.body.retry_after });
       break;
     }

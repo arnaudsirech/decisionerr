@@ -50,16 +50,17 @@ export function radarrTargets(movies) {
     }));
 }
 
-/** Never-asked targets first, then the longest ago; skips those still cooling down. */
-export function dueTargets(targets, asked, { now, cooldownHours, limit }) {
-  const cutoff = now.getTime() - cooldownHours * HOUR;
+/** Targets whose next ask time has passed, never-asked first; `nextAt` maps key → ISO time. */
+export function dueTargets(targets, nextAt, { now, limit }) {
   return targets
-    .map((t) => ({ t, last: asked[t.key] ? Date.parse(asked[t.key]) : 0 }))
-    .filter(({ last }) => last <= cutoff)
-    .sort((a, b) => a.last - b.last)
+    .map((t) => ({ t, at: nextAt[t.key] ? Date.parse(nextAt[t.key]) : 0 }))
+    .filter(({ at }) => at <= now.getTime())
+    .sort((a, b) => a.at - b.at)
     .slice(0, limit)
     .map(({ t }) => t);
 }
+
+export const later = (now, hours) => new Date(now.getTime() + hours * HOUR).toISOString();
 
 export function searchPath(target) {
   if (target.kind === "season") return `/api/v3/release?seriesId=${target.seriesId}&seasonNumber=${target.season}`;

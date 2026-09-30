@@ -53,7 +53,7 @@ monitored items that are still missing:
 It sends the releases (blocklisted and dead ones removed in code) to Decisionerr, along
 with your rules in `arr-agent/preferences.md` (start from
 [`preferences.example.md`](arr-agent/preferences.example.md)), and grabs the
-pick through Sonarr/Radarr. Each target is asked at most every 72 h. `DRY_RUN=1` (the
+pick through Sonarr/Radarr. Each target is asked at most every 72 h; a search that found nothing is retried after 8 h. `DRY_RUN=1` (the
 default) only logs `would_grab` lines: `journalctl --user -u arr-agent`.
 
 ```sh

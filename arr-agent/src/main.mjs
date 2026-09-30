@@ -15,13 +15,14 @@ const config = {
   maxGrabs: Number(env.MAX_GRABS ?? 2),
   minConfidence: Number(env.MIN_CONFIDENCE ?? 0.75),
   cooldownHours: Number(env.COOLDOWN_HOURS ?? 72),
+  emptyRetryHours: Number(env.EMPTY_RETRY_HOURS ?? 8),
   minAiredHours: Number(env.MIN_AIRED_HOURS ?? 48),
 };
 
 const stateFile = env.STATE_FILE ?? join(env.HOME ?? "/tmp", "decisionerr", "data", "arr-agent-state.json");
-let state = { asked: {} };
+let state = { nextAt: {} };
 try {
-  state = JSON.parse(readFileSync(stateFile, "utf8"));
+  state = { nextAt: {}, ...JSON.parse(readFileSync(stateFile, "utf8")) };
 } catch {
   // first run
 }

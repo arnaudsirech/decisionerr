@@ -25,11 +25,11 @@ test("episodes group into season and episode targets, recent airings wait", () =
   assert.deepEqual(targets[0].missingEpisodes, [1, 2]);
 });
 
-test("due targets: never asked first, cooldown respected, limit applied", () => {
+test("due targets: never asked first, future ones wait, limit applied", () => {
   const targets = [{ key: "a" }, { key: "b" }, { key: "c" }];
-  const asked = { a: "2026-09-30T00:00:00Z", b: "2026-09-20T00:00:00Z" };
-  assert.deepEqual(dueTargets(targets, asked, { now: NOW, cooldownHours: 72, limit: 5 }).map((t) => t.key), ["c", "b"]);
-  assert.equal(dueTargets(targets, asked, { now: NOW, cooldownHours: 72, limit: 1 }).length, 1);
+  const nextAt = { a: "2026-10-02T00:00:00Z", b: "2026-09-29T00:00:00Z" };
+  assert.deepEqual(dueTargets(targets, nextAt, { now: NOW, limit: 5 }).map((t) => t.key), ["c", "b"]);
+  assert.equal(dueTargets(targets, nextAt, { now: NOW, limit: 1 }).length, 1);
 });
 
 test("blocklisted, dead and usenet releases never reach the model", () => {
@@ -76,14 +76,14 @@ function fakeSonarr(releases) {
   };
 }
 
-const config = { dryRun: true, maxTargets: 4, maxGrabs: 2, minConfidence: 0.75, cooldownHours: 72, minAiredHours: 48 };
+const config = { dryRun: true, maxTargets: 4, maxGrabs: 2, minConfidence: 0.75, cooldownHours: 72, emptyRetryHours: 8, minAiredHours: 48 };
 
 async function run({ answers, dryRun = true, releases = [release("Example.Show.S01.MULTI.1080p")] }) {
   const sonarr = fakeSonarr(releases);
   const lines = [];
   const payloads = [];
   const queue = [...answers];
-  const state = { asked: {} };
+  const state = { nextAt: {} };
   await runPicker({
     sonarr, radarr: null, state, system: "rules", now: NOW,
     config: { ...config, dryRun },
@@ -116,11 +116,16 @@ test("live run grabs through Sonarr, low confidence does not", async () => {
 test("decisionerr 503 stops the run and leaves the target due", async () => {
   const { lines, state } = await run({ answers: [{ status: 503, body: { error: "unavailable", retry_after: 60 } }, ok(0)] });
   assert.equal(lines.at(-1).event, "stop");
-  assert.equal(Object.keys(state.asked).length, 0);
+  assert.equal(Object.keys(state.nextAt).length, 0);
 });
 
-test("no usable releases skips the model call but still cools down", async () => {
+test("no usable releases skips the model call and retries after the short delay", async () => {
   const { payloads, state } = await run({ answers: [], releases: [release("dead", { seeders: 0 })] });
   assert.equal(payloads.length, 0);
-  assert.equal(Object.keys(state.asked).length, 2);
+  assert.deepEqual(Object.values(state.nextAt), ["2026-09-30T20:00:00.000Z", "2026-09-30T20:00:00.000Z"]);
+});
+
+test("an answered target cools down for the full period", async () => {
+  const { state } = await run({ answers: [ok(null), ok(null)] });
+  assert.deepEqual(Object.values(state.nextAt), ["2026-10-03T12:00:00.000Z", "2026-10-03T12:00:00.000Z"]);
 });
