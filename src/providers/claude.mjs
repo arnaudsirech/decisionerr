@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { findEvent, runProcess } from "../proc.mjs";
 
 const MODELS = {
-  fast: "claude-haiku-4-5-20251001",
+  fast: "claude-haiku-5-5",
   thorough: "claude-sonnet-5-5",
   best: "claude-opus-5-5",
 };
@@ -15,17 +15,22 @@ const TIMEOUT_MS = { fast: 90_000, thorough: 300_000, best: 600_000 };
  * Locked down: no tools, no MCP, no settings, no session,
  * so text inside an input can only shape the JSON that comes back.
  */
-export function claudeProvider({ bin = "claude", workdir } = {}) {
+export function claudeProvider({ bin = "claude", workdir, models = {} } = {}) {
   const cwd = workdir ?? join(process.env.HOME ?? "/tmp", ".cache", "decisionerr", "claude");
   mkdirSync(cwd, { recursive: true });
+  const tiers = {
+    fast: models.fast || MODELS.fast,
+    thorough: models.thorough || MODELS.thorough,
+    best: models.best || MODELS.best,
+  };
 
   return {
     name: "claude",
     supportsImages: true,
-    modelFor: (tier) => MODELS[tier] ?? MODELS.fast,
+    modelFor: (tier) => tiers[tier] ?? tiers.fast,
 
     async run({ system, prompt, images, schema, tier }) {
-      const model = MODELS[tier] ?? MODELS.fast;
+      const model = tiers[tier] ?? tiers.fast;
       const content = [
         ...images.map((image) => ({
           type: "image",
@@ -59,8 +64,10 @@ export function claudeProvider({ bin = "claude", workdir } = {}) {
   };
 }
 
-export function parseClaude({ stdout, stderr, timedOut, spawnError }, model) {
-  if (spawnError) return { ok: false, kind: "transient", error: `spawn: ${spawnError}`, model };
+export function parseClaude({ stdout, stderr, timedOut, spawnError }, requested) {
+  if (spawnError) return { ok: false, kind: "transient", error: `spawn: ${spawnError}`, model: requested };
+  const init = findEvent(stdout ?? "", (event) => event?.type === "system" && event?.subtype === "init");
+  const model = init?.model ?? requested;
   if (timedOut) return { ok: false, kind: "transient", error: "timeout", model };
 
   const result = findEvent(stdout, (event) => event?.type === "result");

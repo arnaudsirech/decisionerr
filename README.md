@@ -37,6 +37,10 @@ systemctl --user daemon-reload && systemctl --user enable --now decisionerr
 
 `claude` and `agy` must be logged in for the service user. Node >= 24 (`node:sqlite`).
 
+The model behind each tier can be changed without a commit: set `CLAUDE_MODEL_FAST`,
+`CLAUDE_MODEL_THOROUGH` or `CLAUDE_MODEL_BEST` (and `AGY_MODEL`) in the unit. The log
+records the model the CLI reports having served.
+
 ## Test
 
 ```sh

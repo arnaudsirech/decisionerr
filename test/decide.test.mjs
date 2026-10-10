@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import { openDb } from "../src/db.mjs";
 import { createDecider } from "../src/decide.mjs";
 import { parseAgy } from "../src/providers/agy.mjs";
-import { parseClaude } from "../src/providers/claude.mjs";
+import { claudeProvider, parseClaude } from "../src/providers/claude.mjs";
 
 const SCHEMA = {
   type: "object",
@@ -169,6 +172,22 @@ test("parseClaude reads structured_output and classifies limits", () => {
   assert.equal(limit.retryAt, 1790000000_000);
   assert.equal(parseClaude({ stdout: JSON.stringify({ type: "result", is_error: true, api_error_status: 401, result: "x" }) }, "m").kind, "auth");
   assert.equal(parseClaude({ stdout: "", stderr: "", timedOut: true }, "m").kind, "transient");
+});
+
+test("parseClaude logs the model the CLI served, not the one requested", () => {
+  const init = JSON.stringify({ type: "system", subtype: "init", model: "served" });
+  const result = JSON.stringify({ type: "result", structured_output: GOOD });
+  assert.equal(parseClaude({ stdout: `${init}\n${result}\n` }, "asked").model, "served");
+  assert.equal(parseClaude({ stdout: `${result}\n` }, "asked").model, "asked");
+  assert.equal(parseClaude({ stdout: `${init}\n`, timedOut: true }, "asked").model, "served");
+});
+
+test("claude tiers can be overridden one by one", () => {
+  const workdir = mkdtempSync(join(tmpdir(), "decisionerr-test-"));
+  const provider = claudeProvider({ workdir, models: { fast: "custom-fast", best: "" } });
+  assert.equal(provider.modelFor("fast"), "custom-fast");
+  assert.equal(provider.modelFor("thorough"), "claude-sonnet-5-5");
+  assert.equal(provider.modelFor("best"), "claude-opus-5-5");
 });
 
 test("parseAgy reads the result event and rejects tool use", () => {

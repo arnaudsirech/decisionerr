@@ -127,7 +127,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     maxConcurrent: Number(env.DECISIONERR_CONCURRENCY ?? 2),
     providers: [
       {
-        provider: claudeProvider({ bin: env.CLAUDE_BIN ?? "claude" }),
+        provider: claudeProvider({
+          bin: env.CLAUDE_BIN ?? "claude",
+          models: {
+            fast: env.CLAUDE_MODEL_FAST,
+            thorough: env.CLAUDE_MODEL_THOROUGH,
+            best: env.CLAUDE_MODEL_BEST,
+          },
+        }),
         dailyCap: Number(env.CLAUDE_DAILY_CAP ?? 100),
       },
       {
